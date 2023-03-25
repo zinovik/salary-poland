@@ -1,78 +1,116 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-        <style type="text/css">
-            input { width: 100; }
-        </style>
-    </head>
+	<head>
+		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+		<style type="text/css">
+			input {
+				width: 100;
+			}
+		</style>
+	</head>
 
-    <body>
+	<body>
+		<div x-data="{
+				MONTHS: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+				PENSION: 0.0976,
+				DISABILITY: 0.015,
+				SICKNESS: 0.0245,
+				MAX_PENSION_YEAR: 17339.62,
+				brutto:[],
+				totalWorkingDays: [],
+				workedDays: [],
+				payedVacations: [],
+				working: [],
+				paidVacations: [],
+				luxMed: [],
+				myBenefit: [],
+				totalIncome: [],
+				pension: [],
+				disability: [],
+				sickness: [],
+				totalZusU: [],
+				healthInsuranceBasic: [],
+				healthInsurance: [],
+				round: (value) => Math.round(value * 100) / 100,
+				getSumBefore: (values, currentIndex) => values.reduce((sum, value, index) => index < currentIndex ? sum + value : sum, 0),
+				getSum: (values) => values.reduce((sum, value) => sum + value, 0),
+				setAll: (values, value) => values.forEach((_, i) => values[i] = Number(value)),
+			}"
+			x-init="MONTHS.forEach((_, i) => {
+				brutto[i] = 17000;
+				totalWorkingDays[i] = 20;
+				workedDays[i] = 20;
+				payedVacations[i] = 0;
+				luxMed[i] = 56.80;
+				myBenefit[i] = 100;
+			})"
+		>
+			<table>
+				<tr>
+					<th rowspan="3">Month</th>
+					<th rowspan="3">BRUTTO</th>
+					<th colspan="3">Days</th>
+					<th colspan="5">INCOME</th>
+					<th colspan="8">OUTCOME</th>
+					<th>TOTAL NETTO</th>
+				</tr>
+				<tr>
+					<th rowspan="2">Total working days</th>
+					<th rowspan="2">Worked days</th>
+					<th rowspan="2">Payed Vacations</th>
+					<th colspan="2">Salary</th>
+					<th colspan="2">Benefits</th>
+					<th rowspan="2">TOTAL INCOME</th>
+					<th colspan="8">ZUS (ubezpieczenie)</th>
+				</tr>
+				<tr>
+					<th>Working</th>
+					<th>Paid Vacation</th>
+					<th>Lux Med</th>
+					<th>My Benefit</th>
+					<th>Pension 9.76%</th>
+					<th>Disability 9.76%</th>
+					<th>Sickness 2.45%</th>
+					<th>TOTAL ZUS U</th>
+					<th>Basic for health insurance</th>
+					<th rowspan="2">Health Insurance 9 %</th>
+				</tr>
 
-        <div x-data="{
-                months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-                brutto:[],
-                totalWorkingDays: [],
-                workedDays: [],
-                payedVacations: [],
-                luxMed: [],
-                myBenefit: [],
-                round: (value) => Math.round(value * 100) / 100,
-            }"
-            x-init="months.forEach((_, i) => {
-                brutto[i] = 10000;
-                totalWorkingDays[i] = 20;
-                workedDays[i] = 20;
-                payedVacations[i] = 0;
-                luxMed[i] = 56.80;
-                myBenefit[i] = 100;
-            })"
-        >
-            <table>
-                <tr>
-                    <th rowspan="3">Month</th>
-                    <th rowspan="3">Brutto</th>
-                    <th colspan="3">Days</th>
-                    <th colspan="3">INCOME</th>
-                    <th colspan="3">OUTCOME</th>
-                    <th>TOTAL NETTO</th>
-                </tr>
-                <tr>
-                    <th rowspan="2">Total working days</th>
-                    <th rowspan="2">Worked days</th>
-                    <th rowspan="2">Payed Vacations</th>
-                    <th colspan="2">Salary</th>
-                    <th colspan="2">Benefits</th>
-                    <th rowspan="2">TOTAL INCOME</th>
-                </tr>
-                <tr>
-                    <th>Working</th>
-                    <th>Paid Vacation</th>
-                    <th>Lux Med</th>
-                    <th>My Benefit</th>
-                </tr>
+				<template x-for="(month, i) in MONTHS">
+					<tr>
+						<td><span x-text="month" /></td>
+						<td><input type="number" size="6" x-model="brutto[i]" /></td>
+						<td><input type="number" size="6" x-model="totalWorkingDays[i]" /></td>
+						<td><input type="number" size="6" x-model="workedDays[i]" /></td>
+						<td><input type="number" size="6" x-model="payedVacations[i]" /></td>
+						<td><span x-text="working[i] = round(brutto[i] * ( workedDays[i] / totalWorkingDays[i] ))" /></td>
+						<td><span x-text="paidVacations[i] = round(brutto[i] * ( payedVacations[i] / totalWorkingDays[i] ))" /></td>
+						<td><input type="number" size="6" x-model="luxMed[i]" /></td>
+						<td><input type="number" size="6" x-model="myBenefit[i]" /></td>
+						<td><span x-text="totalIncome[i] = round(working[i] + paidVacations[i] + luxMed[i] + myBenefit[i])" /></td>
+						<td><span x-text="pension[i] = round(Math.min(totalIncome[i] * PENSION, MAX_PENSION_YEAR - getSumBefore(pension, i)))" /></td>
+						<td><span x-text="disability[i] = round(totalIncome[i] * DISABILITY)" /></td>
+						<td><span x-text="sickness[i] = round(totalIncome[i] * SICKNESS)" /></td>
+						<td><span x-text="totalZusU[i] = round(pension[i] + disability[i] + sickness[i])" /></td>
+						<td><span x-text="healthInsuranceBasic[i] = round(totalIncome[i] - totalZusU[i])" /></td>
+					</tr>
+				</template>
 
-                <template x-for="(month, i) in months">
-                    <tr>
-                        <td><span x-text="month" /></td>
-                        <td><input type="number" size="6" x-model="brutto[i]" /></td>
-                        <td><input type="number" size="6" x-model="totalWorkingDays[i]" /></td>
-                        <td><input type="number" size="6" x-model="workedDays[i]" /></td>
-                        <td><input type="number" size="6" x-model="payedVacations[i]" /></td>
-                        <td><span x-text="round(brutto[i] * ( workedDays[i] / totalWorkingDays[i] ))" /></td>
-                        <td><span x-text="round(brutto[i] * ( payedVacations[i] / totalWorkingDays[i] ))" /></td>
-                        <td><input type="number" size="6" x-model="luxMed[i]" /></td>
-                        <td><input type="number" size="6" x-model="myBenefit[i]" /></td>
-                        <td><span x-text="brutto.reduce((acc, value, index) => index < i? acc + Number(value) : acc, 0)" /></td>
-                    </tr>
-                </template>
+				<tr>
+					<td>All:</td>
+					<td><input type="number" size="6" @keyup="setAll(brutto, $event.target.value)" /></td>
+					<td><input type="number" size="6" @keyup="setAll(totalWorkingDays, $event.target.value)" /></td>
+					<td><input type="number" size="6" @keyup="setAll(workedDays, $event.target.value)" /></td>
+					<td><input type="number" size="6" @keyup="setAll(payedVacations, $event.target.value)" /></td>
+					<td><span x-text="round(getSum(working))" /></td>
+					<td><span x-text="round(getSum(payedVacations))" /></td>
+					<td><input type="number" size="6" @keyup="setAll(luxMed, $event.target.value)" /></td>
+					<td><input type="number" size="6" @keyup="setAll(myBenefit, $event.target.value)" /></td>
+					<td><span x-text="round(getSum(totalIncome))" /></td>
+					<td><span x-text="round(getSum(pension))" /></td>
+				</tr>
+			</table>
+		</div>
 
-                <tr>
-                    <td></td>
-                    <td><input type="number" size="6" @keydown="brutto = brutto.map(() => 12)" /></td>
-                </tr>
-            </table>
-        </div>
-
-    </body>
+	</body>
 </html>
