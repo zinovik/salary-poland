@@ -3,6 +3,10 @@
 	<head>
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 		<style type="text/css">
+			table, th, td {
+				border-collapse: collapse;
+				border: 1px black solid;
+			}
 			input {
 				width: 100;
 			}
@@ -15,6 +19,7 @@
 				PENSION: 0.0976,
 				DISABILITY: 0.015,
 				SICKNESS: 0.0245,
+				HEALTH_INSURANCE: 0.09,
 				MAX_PENSION_YEAR: 17339.62,
 				brutto:[],
 				totalWorkingDays: [],
@@ -51,8 +56,8 @@
 					<th rowspan="3">BRUTTO</th>
 					<th colspan="3">Days</th>
 					<th colspan="5">INCOME</th>
-					<th colspan="8">OUTCOME</th>
-					<th>TOTAL NETTO</th>
+					<th colspan="6">OUTCOME</th>
+					<th rowspan="3">TOTAL NETTO</th>
 				</tr>
 				<tr>
 					<th rowspan="2">Total working days</th>
@@ -61,7 +66,7 @@
 					<th colspan="2">Salary</th>
 					<th colspan="2">Benefits</th>
 					<th rowspan="2">TOTAL INCOME</th>
-					<th colspan="8">ZUS (ubezpieczenie)</th>
+					<th colspan="6">ZUS (ubezpieczenie)</th>
 				</tr>
 				<tr>
 					<th>Working</th>
@@ -73,7 +78,7 @@
 					<th>Sickness 2.45%</th>
 					<th>TOTAL ZUS U</th>
 					<th>Basic for health insurance</th>
-					<th rowspan="2">Health Insurance 9 %</th>
+					<th>Health Insurance 9 %</th>
 				</tr>
 
 				<template x-for="(month, i) in MONTHS">
@@ -93,19 +98,21 @@
 						<td><span x-text="sickness[i] = round(totalIncome[i] * SICKNESS)" /></td>
 						<td><span x-text="totalZusU[i] = round(pension[i] + disability[i] + sickness[i])" /></td>
 						<td><span x-text="healthInsuranceBasic[i] = round(totalIncome[i] - totalZusU[i])" /></td>
+						<td><span x-text="healthInsurance[i] = round(healthInsuranceBasic[i] * HEALTH_INSURANCE)" /></td>
+						<td><span x-text="brutto[i]" /></td>
 					</tr>
 				</template>
 
 				<tr>
 					<td>All:</td>
-					<td><input type="number" size="6" @keyup="setAll(brutto, $event.target.value)" /></td>
-					<td><input type="number" size="6" @keyup="setAll(totalWorkingDays, $event.target.value)" /></td>
-					<td><input type="number" size="6" @keyup="setAll(workedDays, $event.target.value)" /></td>
-					<td><input type="number" size="6" @keyup="setAll(payedVacations, $event.target.value)" /></td>
+					<td><input type="number" size="6" @change="setAll(brutto, $event.target.value)" /></td>
+					<td><input type="number" size="6" @change="setAll(totalWorkingDays, $event.target.value)" /></td>
+					<td><input type="number" size="6" @change="setAll(workedDays, $event.target.value)" /></td>
+					<td><input type="number" size="6" @change="setAll(payedVacations, $event.target.value)" /></td>
 					<td><span x-text="round(getSum(working))" /></td>
 					<td><span x-text="round(getSum(payedVacations))" /></td>
-					<td><input type="number" size="6" @keyup="setAll(luxMed, $event.target.value)" /></td>
-					<td><input type="number" size="6" @keyup="setAll(myBenefit, $event.target.value)" /></td>
+					<td><input type="number" size="6" @change="setAll(luxMed, $event.target.value)" /></td>
+					<td><input type="number" size="6" @change="setAll(myBenefit, $event.target.value)" /></td>
 					<td><span x-text="round(getSum(totalIncome))" /></td>
 					<td><span x-text="round(getSum(pension))" /></td>
 				</tr>
