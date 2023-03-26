@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<title>Salary Poland</title>
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 		<script>
 			const INITIAL_BRUTTO = 17000;
@@ -29,7 +30,7 @@
 
 			const getWorking = (months, i) => round(months[i].brutto * ( months[i].workedDays / months[i].totalWorkingDays ));
 			const getPaidVacations = (months, i) => round(months[i].brutto * ( months[i].payedVacations / months[i].totalWorkingDays ));
-			const getTotalIncome = (months, i) => round(getWorking(months, i) + getPaidVacations(months, i) + months[i].luxMed + months[i].myBenefit);
+			const getTotalIncome = (months, i) => round(getWorking(months, i) + getPaidVacations(months, i) + Number(months[i].luxMed) + Number(months[i].myBenefit));
 
 			const getPensionMonth = (months, i) => round(getTotalIncome(months, i) * PENSION);
 			const getPension = (months, i) => round(Math.max(0, Math.min(getPensionMonth(months, i), MAX_PENSION_YEAR - getSumBefore(months, getPensionMonth, i))));
@@ -40,15 +41,15 @@
 			const getHealthInsuranceBasic = (months, i) => round(getTotalIncome(months, i) - getTotalZusU(months, i));
 			const getHealthInsurance = (months, i) => round(getHealthInsuranceBasic(months, i) * HEALTH_INSURANCE);
 
-			const getTaxLowBasicMonth = (months, i) => round(getTotalIncome(months, i) - getTotalZusU(months, i) - months[i].incomeCost);
+			const getTaxLowBasicMonth = (months, i) => round(getTotalIncome(months, i) - getTotalZusU(months, i) - Number(months[i].incomeCost));
 			const getTaxLowBasic = (months, i) => round(Math.max(0, Math.min(getTaxLowBasicMonth(months, i), MAX_TAX_LOW_YEAR - getSumBefore(months, getTaxLowBasicMonth, i))));
-			const getTaxHighBasic = (months, i) => round(Math.max(0, getTotalIncome(months, i) - getTotalZusU(months, i) - months[i].incomeCost - getTaxLowBasic(months, i)));
+			const getTaxHighBasic = (months, i) => round(Math.max(0, getTotalIncome(months, i) - getTotalZusU(months, i) - Number(months[i].incomeCost) - getTaxLowBasic(months, i)));
 
 			const getTaxLow = (months, i) => round(getTaxLowBasic(months, i) * TAX_LOW);
 			const getTaxHigh = (months, i) => round(getTaxHighBasic(months, i) * TAX_HIGH);
-			const getTotalTax = (months, i) => Math.floor(Math.max(0, getTaxLow(months, i) + getTaxHigh(months, i) + months[i].discount));
+			const getTotalTax = (months, i) => Math.floor(Math.max(0, getTaxLow(months, i) + getTaxHigh(months, i) + Number(months[i].discount)));
 			const getTotalOutcome = (months, i) => round(getTotalZusU(months, i) + getHealthInsurance(months, i) + getTotalTax(months, i));
-			const getNetto = (months, i) => round(getTotalIncome(months, i) - getTotalOutcome(months, i) - months[i].luxMed - months[i].myBenefit);
+			const getNetto = (months, i) => round(getTotalIncome(months, i) - getTotalOutcome(months, i) - Number(months[i].luxMed) - Number(months[i].myBenefit));
 			const getOutcomePercentage = (months, i) => round(getTotalOutcome(months, i) / getTotalIncome(months, i) * 100) || 0;
 		</script>
 		<style type="text/css">
@@ -120,7 +121,7 @@
 					<th>Disability 1.5%</th>
 					<th>Sickness 2.45%</th>
 					<th>TOTAL ZUS U</th>
-					<th>Basic for health insurance</th>
+					<th>Basic for Health Insurance</th>
 					<th>Health Insurance 9 %</th>
 					<th>Income Costs</th>
 					<th>Discount</th>
