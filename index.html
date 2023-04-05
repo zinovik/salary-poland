@@ -5,59 +5,76 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 		<script>
-			const INITIAL_GROSS = 0;
-			const INITIAL_TOTAL_WORKING_DAYS = 20;
-			const INITIAL_WORKED_DAYS = 20;
-			const INITIAL_PAID_VACATION_DAYS = 0;
-			const INITIAL_LUX_MED = 56.80;
-			const INITIAL_MY_BENEFIT = 100;
-			const INITIAL_TAX_DEDUCTIBLE_COSTS = 250;
-			const INITIAL_TAX_RELIEF = 300;
-			const INITIAL_EXCHANGE_RATE = 4.35;
+			const urlParams = new URLSearchParams(window.location.search);
 
-			const PENSION = 0.0976;
-			const DISABILITY = 0.015;
-			const SICKNESS = 0.0245;
-			const HEALTHCARE = 0.09;
-			const TAX_LOW = 0.12;
-			const TAX_HIGH = 0.32;
+			const INITIAL_GROSS = urlParams.get('gross') || prompt('Enter your GROSS salary', 0);
+			const INITIAL_TOTAL_WORKING_DAYS = urlParams.get('total-working-days') || 20;
+			const INITIAL_WORKED_DAYS = urlParams.get('worked-days') || 20;
+			const INITIAL_PAID_VACATION_DAYS = urlParams.get('paid-vacation-days') || 0;
+			const INITIAL_BENEFITS = urlParams.get('benefits') || 156.80;
+			const INITIAL_TAX_DEDUCTIBLE_COSTS = urlParams.get('tax-deductible-costs') || 250;
+			const INITIAL_TAX_RELIEF = urlParams.get('tax-relief') || 300;
+			const INITIAL_AKUP_PERCENT = urlParams.get('akup-percent') || 0; // 80;
+			const INITIAL_EXCHANGE_RATE = urlParams.get('exchange-rate') || 4.35;
+
+			const PENSION = urlParams.get('pension') * 0.01 || 0.0976;
+			const DISABILITY = urlParams.get('disability') * 0.01 || 0.015;
+			const SICKNESS = urlParams.get('sickness') * 0.01 || 0.0245;
+			const HEALTHCARE = urlParams.get('healthcare') * 0.01 || 0.09;
+			const TAX_LOW = urlParams.get('tax-low') * 0.01 || 0.12;
+			const TAX_HIGH = urlParams.get('tax-high') * 0.01 || 0.32;
 
 			const round = (value) => Math.round(value * 100) * 0.01;
-			const getSumAndFormat = (months, name) => round(months.reduce((sum, month) => sum + month[name], 0)).toFixed(2);
+			const getSumAndFormat = (months, name, format = 2) => round(months.reduce((sum, month) => sum + Number(month[name]), 0)).toFixed(format);
 			const getAverageAndFormat = (months, name) => round(months.reduce((sum, month) => sum + month[name], 0) / months.length).toFixed(2);
 			const setAll = (months, name, value) => months.forEach((month) => month[name] = Number(value));
 
-			const recalculate = (months, options) => {
-				options.pensionSum = 0;
-				options.taxLowBasisSum = 0;
+			const recalculate = (months, options, sums) => {
+				sums.pensionSum = 0;
+				sums.disabilitySum = 0;
+				sums.taxLowBasisSum = 0;
 
 				months.forEach((_, i) => {
 					months[i].working = round(months[i].gross * ( months[i].workedDays / months[i].totalWorkingDays )) || 0;
 					months[i].paidVacations = round(months[i].gross * ( months[i].paidVacationDays / months[i].totalWorkingDays )) || 0;
-					months[i].totalIncome = round(months[i].working + months[i].paidVacations + Number(months[i].luxMed) + Number(months[i].myBenefit));
+					months[i].totalIncome = round(months[i].working + months[i].paidVacations + Number(months[i].benefits));
 
-					months[i].pension = round(Math.min(months[i].totalIncome * PENSION, options.maxPensionYear - options.pensionSum));
-					options.pensionSum = options.pensionSum + months[i].pension;
-
-					months[i].disability = round(months[i].totalIncome * DISABILITY);
+					months[i].pension = round(Math.min(months[i].totalIncome * PENSION, options.sumLimitPension - sums.pensionSum));
+					months[i].disability = round(Math.min(months[i].totalIncome * DISABILITY, options.sumLimitDisability - sums.disabilitySum));
 					months[i].sickness = round(months[i].totalIncome * SICKNESS);
 					months[i].totalZusU = round(months[i].pension + months[i].disability + months[i].sickness);
 					months[i].healthcareBasis = round(months[i].totalIncome - months[i].totalZusU);
 					months[i].healthcare = round(months[i].healthcareBasis * HEALTHCARE);
 
-					months[i].taxLowBasis = round(Math.min(months[i].totalIncome - months[i].totalZusU - Number(months[i].taxDeductibleCosts), options.maxTaxLowYear - options.taxLowBasisSum));
-					options.taxLowBasisSum = options.taxLowBasisSum + months[i].taxLowBasis;
+					months[i].akup = round(0.5 * months[i].working * Number(months[i].akupPercent) * 0.01 * (1 - PENSION - DISABILITY - SICKNESS));
 
-					months[i].taxHighBasis = round(Math.max(0, months[i].totalIncome - months[i].totalZusU - Number(months[i].taxDeductibleCosts) - months[i].taxLowBasis));
+					const taxBasis = months[i].totalIncome - months[i].totalZusU - Number(months[i].taxDeductibleCosts) - months[i].akup;
+					months[i].taxLowBasis = Math.round(Math.min(taxBasis, options.sumLimitTaxLow - sums.taxLowBasisSum));
+					months[i].taxHighBasis = Math.round(Math.max(0, taxBasis - months[i].taxLowBasis));
 
-					months[i].taxLow = round(months[i].taxLowBasis * TAX_LOW);
-					months[i].taxHigh = round(months[i].taxHighBasis * TAX_HIGH);
-					months[i].totalTax = Math.floor(Math.max(0, months[i].taxLow + months[i].taxHigh - Number(months[i].taxRelief)));
+					months[i].taxLow = Math.round(months[i].taxLowBasis * TAX_LOW);
+					months[i].taxHigh = Math.round(months[i].taxHighBasis * TAX_HIGH);
+					months[i].totalTax = Math.round(Math.max(0, months[i].taxLow + months[i].taxHigh - Number(months[i].taxRelief)));
 					months[i].totalOutcome = round(months[i].totalZusU + months[i].healthcare + months[i].totalTax);
-					months[i].net = round(months[i].totalIncome - months[i].totalOutcome - Number(months[i].luxMed) - Number(months[i].myBenefit));
+					months[i].net = round(months[i].totalIncome - months[i].totalOutcome - Number(months[i].benefits));
 					months[i].netUsd = round(months[i].net / Number(months[i].exchangeRate)) || 0;
 					months[i].outcomePercentage = round(months[i].totalOutcome / months[i].totalIncome * 100) || 0;
+
+					sums.pensionSum = sums.pensionSum + months[i].pension;
+					sums.disabilitySum = sums.disabilitySum + months[i].disability;
+					sums.taxLowBasisSum = sums.taxLowBasisSum + months[i].taxLowBasis;
 				});
+			};
+
+			const clearMonth = (months, i) => {
+				months[i].gross = 0;
+				months[i].totalWorkingDays = 0;
+				months[i].workedDays = 0;
+				months[i].paidVacations = 0;
+				months[i].benefits = 0;
+				months[i].taxDeductibleCosts = 0;
+				months[i].taxRelief = 0;
+				months[i].akupPercent = 0;
 			};
 		</script>
 		<style type="text/css">
@@ -69,8 +86,17 @@
 				border: 1px black solid;
 				text-align: center;
 			}
-			input {
-				width: 100;
+			/* Chrome, Safari, Edge, Opera */
+			input::-webkit-outer-spin-button,
+			input::-webkit-inner-spin-button {
+				-webkit-appearance: none;
+				margin: 0;
+				text-align: center;
+			}
+			/* Firefox */
+			input[type=number] {
+				-moz-appearance: textfield;
+				text-align: center;
 			}
 			.income {
 				background-color: lightgreen;
@@ -96,47 +122,54 @@
 	<body>
 		<div x-data="{
 				months: [
-					{ name: 'January' },
-					{ name: 'February' },
-					{ name: 'March' },
-					{ name: 'April' },
+					{ name: 'Jan' },
+					{ name: 'Feb' },
+					{ name: 'Mar' },
+					{ name: 'Apr' },
 					{ name: 'May' },
-					{ name: 'June' },
-					{ name: 'July' },
-					{ name: 'August' },
-					{ name: 'September' },
-					{ name: 'October' },
-					{ name: 'November' },
-					{ name: 'December' },
+					{ name: 'Jun' },
+					{ name: 'Jul' },
+					{ name: 'Aug' },
+					{ name: 'Sep' },
+					{ name: 'Oct' },
+					{ name: 'Nov' },
+					{ name: 'Dec' },
 				],
 				options: {
-					maxPensionYear: 20305.68, // 17339.62,
-					maxTaxLowYear: 120000,
+					sumLimitPension: 20305.68,
+					sumLimitDisability: 3120.75,
+					sumLimitTaxLow: 120000,
 				},
+				sums: {},
 			}"
 			x-init="
 				$watch('options.eachGross', (value) => setAll(months, 'gross', value));
 				$watch('options.eachTotalWorkingDays', (value) => setAll(months, 'totalWorkingDays', value));
 				$watch('options.eachWorkedDays', (value) => setAll(months, 'workedDays', value));
 				$watch('options.eachPaidVacationDays', (value) => setAll(months, 'paidVacationDays', value));
-				$watch('options.eachLuxMed', (value) => setAll(months, 'luxMed', value));
-				$watch('options.eachMyBenefit', (value) => setAll(months, 'myBenefit', value));
+				$watch('options.eachBenefits', (value) => setAll(months, 'benefits', value));
 				$watch('options.eachTaxDeductibleCosts', (value) => setAll(months, 'taxDeductibleCosts', value));
 				$watch('options.eachTaxRelief', (value) => setAll(months, 'taxRelief', value));
+				$watch('options.eachAkupPercent', (value) => setAll(months, 'akupPercent', value));
 				$watch('options.eachExchangeRate', (value) => setAll(months, 'exchangeRate', value));
 
-				options.eachGross = prompt('Enter your GROSS salary', INITIAL_GROSS);
+				const urlParams = new URLSearchParams(window.location.search);
+
+				options.eachGross = INITIAL_GROSS;
 				options.eachTotalWorkingDays = INITIAL_TOTAL_WORKING_DAYS;
 				options.eachWorkedDays = INITIAL_WORKED_DAYS;
 				options.eachPaidVacationDays = INITIAL_PAID_VACATION_DAYS;
-				options.eachLuxMed = INITIAL_LUX_MED;
-				options.eachMyBenefit = INITIAL_MY_BENEFIT;
+				options.eachBenefits = INITIAL_BENEFITS;
 				options.eachTaxDeductibleCosts = INITIAL_TAX_DEDUCTIBLE_COSTS;
 				options.eachTaxRelief = INITIAL_TAX_RELIEF;
+				options.eachAkupPercent = INITIAL_AKUP_PERCENT;
 				options.eachExchangeRate = INITIAL_EXCHANGE_RATE;
 
-				recalculate(months, options);
-				$watch('months', () => recalculate(months, options));
+				recalculate(months, options, sums);
+				$watch('months', () => recalculate(months, options, sums));
+				$watch('options.sumLimitPension', () => recalculate(months, options, sums));
+				$watch('options.sumLimitDisability', () => recalculate(months, options, sums));
+				$watch('options.sumLimitTaxLow', () => recalculate(months, options, sums));
 			"
 		>
 			<table>
@@ -144,10 +177,10 @@
 					<th rowspan="3">Month</th>
 					<th rowspan="3">GROSS</th>
 					<th colspan="3">Days</th>
-					<th colspan="5" class="income">INCOME</th>
-					<th colspan="14" class="outcome">OUTCOME</th>
+					<th colspan="4" class="income">INCOME</th>
+					<th colspan="16" class="outcome">OUTCOME</th>
 					<th rowspan="3" class="net">NET</th>
-					<th rowspan="3">Exchange Rate</th>
+					<th rowspan="3">USD to PLN</th>
 					<th rowspan="3">NET, USD</th>
 					<th rowspan="3">Outcomes Percentage</th>
 				</tr>
@@ -156,18 +189,16 @@
 					<th rowspan="2">Worked days</th>
 					<th rowspan="2">Paid vacation days</th>
 					<th colspan="2">Salary</th>
-					<th colspan="2">Benefits</th>
+					<th rowspan="2">Benefits</th>
 					<th rowspan="2" class="income">TOTAL INCOME</th>
 					<th colspan="4" class="zus">Social Security ZUS (ubezpieczenie)</th>
 					<th colspan="2" class="zus">Healthcare</th>
-					<th colspan="7" class="tax">TAX</th>
+					<th colspan="9" class="tax">TAX</th>
 					<th rowspan="2" class="outcome">TOTAL OUTCOME</th>
 				</tr>
 				<tr>
 					<th alt="test">Working</th>
 					<th>Paid Vacation</th>
-					<th>Lux Med</th>
-					<th>My Benefit</th>
 					<th x-text="'Pension ' + PENSION * 100 + '%'"></th>
 					<th x-text="'Disability ' + DISABILITY * 100 + '%'"></th>
 					<th x-text="'Sickness ' + SICKNESS * 100 + '%'"></th>
@@ -176,6 +207,8 @@
 					<th class="zus" x-text="'Healthcare ' + HEALTHCARE * 100 + '%'"></th>
 					<th>Tax Deductible Costs</th>
 					<th>Tax Relief</th>
+					<th>AKUP %</th>
+					<th>AKUP</th>
 					<th x-text="'Basis for TAX (' + TAX_LOW * 100 + '%)'"></th>
 					<th x-text="'Basis for TAX (' + TAX_HIGH * 100 + '%)'"></th>
 					<th x-text="'TAX ' + TAX_LOW * 100 + '%'"></th>
@@ -185,66 +218,168 @@
 
 				<template x-for="(month, i) in months">
 					<tr>
-						<td><span x-text="month.name" /></td>
-						<td><input type="number" size="6" x-model="months[i].gross" /></td>
-						<td><input type="number" size="3" x-model="months[i].totalWorkingDays" /></td>
-						<td><input type="number" size="3" x-model="months[i].workedDays" /></td>
-						<td><input type="number" size="3" x-model="months[i].paidVacationDays" /></td>
-						<td><span x-text="months[i].working.toFixed(2)" /></td>
-						<td><span x-text="months[i].paidVacations.toFixed(2)" /></td>
-						<td><input type="number" size="5" x-model="months[i].luxMed" /></td>
-						<td><input type="number" size="4" x-model="months[i].myBenefit" /></td>
-						<td class="income"><span x-text="months[i].totalIncome.toFixed(2)" /></td>
-						<td><span x-text="months[i].pension.toFixed(2)" /></td>
-						<td><span x-text="months[i].disability.toFixed(2)" /></td>
-						<td><span x-text="months[i].sickness.toFixed(2)" /></td>
-						<td class="zus"><span x-text="months[i].totalZusU.toFixed(2)" /></td>
-						<td><span x-text="months[i].healthcareBasis.toFixed(2)" /></td>
-						<td class="zus"><span x-text="months[i].healthcare.toFixed(2)" /></td>
-						<td><input type="number" size="6" x-model="months[i].taxDeductibleCosts" /></td>
-						<td><input type="number" size="4" x-model="months[i].taxRelief" /></td>
-						<td><span x-text="months[i].taxLowBasis.toFixed(2)" /></td>
-						<td><span x-text="months[i].taxHighBasis.toFixed(2)" /></td>
-						<td><span x-text="months[i].taxLow.toFixed(2)" /></td>
-						<td><span x-text="months[i].taxHigh.toFixed(2)" /></td>
-						<td class="tax"><span x-text="months[i].totalTax" /></td>
-						<td class="outcome"><span x-text="months[i].totalOutcome.toFixed(2)" /></td>
-						<td class="net"><span x-text="months[i].net.toFixed(2)" /></td>
-						<td><input type="number" size="4" x-model="months[i].exchangeRate" /></td>
-						<td class="usd"><span x-text="'$' + months[i].netUsd.toFixed(2)" /></td>
-						<td><span x-text="months[i].outcomePercentage.toFixed(2) + '%'" /></td>
+						<td><span x-text="month.name"></span> <button type="button" @click="clearMonth(months, i)">X</button></td>
+						<td><input type="number" size="5" x-model="months[i].gross" /></td>
+						<td><input type="number" size="2" x-model="months[i].totalWorkingDays" /></td>
+						<td><input type="number" size="2" x-model="months[i].workedDays" /></td>
+						<td><input type="number" size="2" x-model="months[i].paidVacationDays" /></td>
+						<td><span x-text="months[i].working.toFixed(2)"></span></td>
+						<td><span x-text="months[i].paidVacations.toFixed(2)"></span></td>
+						<td><input type="number" size="4" x-model="months[i].benefits" /></td>
+						<td class="income"><span x-text="months[i].totalIncome.toFixed(2)"></span></td>
+						<td><span x-text="months[i].pension.toFixed(2)"></span></td>
+						<td><span x-text="months[i].disability.toFixed(2)"></span></td>
+						<td><span x-text="months[i].sickness.toFixed(2)"></span></td>
+						<td class="zus"><span x-text="months[i].totalZusU.toFixed(2)"></span></td>
+						<td><span x-text="months[i].healthcareBasis.toFixed(2)"></span></td>
+						<td class="zus"><span x-text="months[i].healthcare.toFixed(2)"></span></td>
+						<td><input type="number" size="3" x-model="months[i].taxDeductibleCosts" /></td>
+						<td><input type="number" size="3" x-model="months[i].taxRelief" /></td>
+						<td><input type="number" size="2" x-model="months[i].akupPercent" /></td>
+						<td><span x-text="months[i].akup.toFixed(2)"></span></td>
+						<td><span x-text="months[i].taxLowBasis"></span></td>
+						<td><span x-text="months[i].taxHighBasis"></span></td>
+						<td><span x-text="months[i].taxLow"></span></td>
+						<td><span x-text="months[i].taxHigh"></span></td>
+						<td class="tax"><span x-text="months[i].totalTax"></span></td>
+						<td class="outcome"><span x-text="months[i].totalOutcome.toFixed(2)"></span></td>
+						<td class="net"><span x-text="months[i].net.toFixed(2)"></span></td>
+						<td><input type="number" size="3" x-model="months[i].exchangeRate" /></td>
+						<td class="usd"><span x-text="months[i].netUsd.toFixed(2)"></span></td>
+						<td><span x-text="months[i].outcomePercentage.toFixed(2) + '%'"></span></td>
 					</tr>
 				</template>
 
+				<tr><td colspan="99"></td></tr>
+
 				<tr>
+					<td>TOTAL</td>
+					<td><span x-text="getSumAndFormat(months, 'gross', 0)"></span></td>
 					<td></td>
-					<td>Set each: <input type="number" size="6" x-model="options.eachGross" /></td>
-					<td>Set each: <input type="number" size="3" x-model="options.eachTotalWorkingDays" /></td>
-					<td>Set each: <input type="number" size="3" x-model="options.eachWorkedDays" /></td>
-					<td>Set each: <input type="number" size="3" x-model="options.eachPaidVacationDays" /></td>
-					<td>Total (year): <span x-text="getSumAndFormat(months, 'working')" /></td>
-					<td>Total (year): <span x-text="getSumAndFormat(months, 'paidVacations')" /></td>
-					<td>Set each: <input type="number" size="5" x-model="options.eachLuxMed" /></td>
-					<td>Set each: <input type="number" size="4" x-model="options.eachMyBenefit" /></td>
-					<td class="income">Total (year): <span x-text="getSumAndFormat(months, 'totalIncome')" /></td>
-					<td>Max (year): <input type="number" size="8" x-model="options.maxPensionYear" /></td>
-					<td>Total (year): <span x-text="getSumAndFormat(months, 'disability')" /></td>
-					<td>Total (year): <span x-text="getSumAndFormat(months, 'sickness')" /></td>
-					<td class="zus">Total (year): <span x-text="getSumAndFormat(months, 'totalZusU')" /></td>
-					<td>Total (year): <span x-text="getSumAndFormat(months, 'healthcareBasis')" /></td>
-					<td class="zus">Total (year): <span x-text="getSumAndFormat(months, 'healthcare')" /></td>
-					<td>Set each: <input type="number" size="6" x-model="options.eachTaxDeductibleCosts" /></td>
-					<td>Set each: <input type="number" size="4" x-model="options.eachTaxRelief" /></td>
-					<td>Max (year): <input type="number" size="7" x-model="options.maxTaxLowYear" /></td>
-					<td>Total (year): <span x-text="getSumAndFormat(months, 'taxHighBasis')" /></td>
-					<td>Total (year): <span x-text="getSumAndFormat(months, 'taxLow')" /></td>
-					<td>Total (year): <span x-text="getSumAndFormat(months, 'taxHigh')" /></td>
-					<td class="tax">Total (year): <span x-text="getSumAndFormat(months, 'totalTax')" /></td>
-					<td class="outcome">Total (year): <span x-text="getSumAndFormat(months, 'totalOutcome')" /></td>
-					<td class="net"><span x-text="getAverageAndFormat(months, 'net') + ' * 12 = ' + getSumAndFormat(months, 'net')" /></td>
-					<td>Set each: <input type="number" size="4" x-model="options.eachExchangeRate" /></td>
-					<td class="usd"><span x-text="'$' +getAverageAndFormat(months, 'netUsd') + ' * 12 = $' + getSumAndFormat(months, 'netUsd')" /></td>
-					<td>Total (month): <span x-text="getAverageAndFormat(months, 'outcomePercentage') + '%'" /></td>
+					<td></td>
+					<td></td>
+					<td><span x-text="getSumAndFormat(months, 'working')"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'paidVacations')"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'benefits')"></span></td>
+					<td class="income"><span x-text="getSumAndFormat(months, 'totalIncome')"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'pension')"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'disability')"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'sickness')"></span></td>
+					<td class="zus"><span x-text="getSumAndFormat(months, 'totalZusU')"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'healthcareBasis')"></span></td>
+					<td class="zus"><span x-text="getSumAndFormat(months, 'healthcare')"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'taxDeductibleCosts', 0)"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'taxRelief', 0)"></span></td>
+					<td></td>
+					<td><span x-text="getSumAndFormat(months, 'akup')"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'taxLowBasis', 0)"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'taxHighBasis', 0)"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'taxLow', 0)"></span></td>
+					<td><span x-text="getSumAndFormat(months, 'taxHigh', 0)"></span></td>
+					<td class="tax"><span x-text="getSumAndFormat(months, 'totalTax', 0)"></span></td>
+					<td class="outcome"><span x-text="getSumAndFormat(months, 'totalOutcome')"></span></td>
+					<td class="net"><span x-text="getSumAndFormat(months, 'net')"></span></td>
+					<td></td>
+					<td class="usd"><span x-text="getSumAndFormat(months, 'netUsd')"></span></td>
+					<td></td>
+				</tr>
+
+				<tr>
+					<td>AVERAGE</td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="income"></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="zus"></td>
+					<td></td>
+					<td class="zus"></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="tax"></td>
+					<td class="outcome"></td>
+					<td class="net"><span x-text="getAverageAndFormat(months, 'net')"></span></td>
+					<td></td>
+					<td class="usd"><span x-text="getAverageAndFormat(months, 'netUsd')"></span></td>
+					<td><span x-text="getAverageAndFormat(months, 'outcomePercentage') + '%'"></span></td>
+				</tr>
+
+				<tr><td colspan="99"></td></tr>
+
+				<tr>
+					<td>SET EACH</td>
+					<td><input type="number" size="5" x-model="options.eachGross" /></td>
+					<td><input type="number" size="2" x-model="options.eachTotalWorkingDays" /></td>
+					<td><input type="number" size="2" x-model="options.eachWorkedDays" /></td>
+					<td><input type="number" size="2" x-model="options.eachPaidVacationDays" /></td>
+					<td></td>
+					<td></td>
+					<td><input type="number" size="4" x-model="options.eachBenefits" /></td>
+					<td class="income"></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="zus"></td>
+					<td></td>
+					<td class="zus"></td>
+					<td><input type="number" size="3" x-model="options.eachTaxDeductibleCosts" /></td>
+					<td><input type="number" size="3" x-model="options.eachTaxRelief" /></td>
+					<td><input type="number" size="2" x-model="options.eachAkupPercent" /></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="tax"></td>
+					<td class="outcome"></td>
+					<td class="net"></td>
+					<td><input type="number" size="3" x-model="options.eachExchangeRate" /></td>
+					<td class="usd"></td>
+					<td></td>
+				</tr>
+
+				<tr>
+					<td>SET YEAR LIMIT</td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="income"></td>
+					<td><input type="number" size="7" x-model="options.sumLimitPension" /></td>
+					<td><input type="number" size="7" x-model="options.sumLimitDisability" /></td>
+					<td></td>
+					<td class="zus"></td>
+					<td></td>
+					<td class="zus"></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td><input type="number" size="6" x-model="options.sumLimitTaxLow" /></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="tax"></td>
+					<td class="outcome"></td>
+					<td class="net"></td>
+					<td></td>
+					<td class="usd"></td>
+					<td></td>
 				</tr>
 			</table>
 		</div>
