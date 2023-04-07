@@ -55,7 +55,7 @@
 			const INITIAL_TAX_DEDUCTIBLE_COSTS = urlParams.get('tdc') || 250;
 			const INITIAL_TAX_RELIEF = urlParams.get('tr') || 300;
 			const INITIAL_AKUP_PERCENT = urlParams.get('ap') || 0; // 80;
-			const INITIAL_OTHER_OUTCOMES = urlParams.get('oo') || 3.32;
+			const INITIAL_OTHER = urlParams.get('o') || 3.32;
 			const INITIAL_EXCHANGE_RATE = urlParams.get('er') || 4.29;
 
 			const PENSION = urlParams.get('p') * 0.01 || 0.0976;
@@ -68,7 +68,7 @@
 			const round = (value) => Math.round(value * 100) * 0.01;
 			const format = (value, numbers = 2) => value.toFixed(numbers);
 			const getSum = (months, name) => round(months.reduce((sum, month) => sum + Number(month[name]), 0));
-			const getAverage = (months, name) => round(months.reduce((sum, month) => sum + month[name], 0) / months.length);
+			const getAverage = (months, name) => round(months.reduce((sum, month) => sum + Number(month[name]), 0) / months.length);
 			const setAll = (months, name, value) => months.forEach((month) => month[name] = Number(value));
 
 			const recalculate = (months, options) => {
@@ -110,10 +110,10 @@
 					months[i].taxLow = Math.round(months[i].taxLowBasis * TAX_LOW);
 					months[i].taxHigh = Math.round(months[i].taxHighBasis * TAX_HIGH);
 					months[i].totalTax = Math.round(Math.max(0, months[i].taxLow + months[i].taxHigh - Number(months[i].taxRelief)));
-					months[i].totalOutcome = round(months[i].totalZusU + months[i].healthcare + months[i].totalTax + months[i].otherOutcomes);
-					months[i].net = round(months[i].totalIncome - months[i].totalOutcome - Number(months[i].benefits));
+					months[i].totalOutcome = round(months[i].totalZusU + months[i].healthcare + months[i].totalTax);
+					months[i].net = round(months[i].totalIncome - months[i].totalOutcome - Number(months[i].benefits) - Number(months[i].other));
 					months[i].netUsd = round(months[i].net / Number(months[i].exchangeRate)) || 0;
-					months[i].outcomePercentage = round(months[i].totalOutcome / months[i].totalIncome * 100) || 0;
+					months[i].outcomePercentage = round(months[i].totalOutcome / (months[i].totalIncome + Number(months[i].other)) * 100) || 0;
 
 					pensionSum = pensionSum + months[i].pension;
 					disabilitySum = disabilitySum + months[i].disability;
@@ -131,6 +131,7 @@
 				months[i].taxDeductibleCosts = 0;
 				months[i].taxRelief = 0;
 				months[i].akupPercent = 0;
+				months[i].other = 0;
 			};
 		</script>
 	</head>
@@ -168,7 +169,7 @@
 				$watch('options.eachTaxDeductibleCosts', (value) => setAll(months, 'taxDeductibleCosts', value));
 				$watch('options.eachTaxRelief', (value) => setAll(months, 'taxRelief', value));
 				$watch('options.eachAkupPercent', (value) => setAll(months, 'akupPercent', value));
-				$watch('options.eachOtherOutcomes', (value) => setAll(months, 'otherOutcomes', value));
+				$watch('options.eachOther', (value) => setAll(months, 'other', value));
 				$watch('options.eachExchangeRate', (value) => setAll(months, 'exchangeRate', value));
 
 				const urlParams = new URLSearchParams(window.location.search);
@@ -181,7 +182,7 @@
 				options.eachTaxDeductibleCosts = INITIAL_TAX_DEDUCTIBLE_COSTS;
 				options.eachTaxRelief = INITIAL_TAX_RELIEF;
 				options.eachAkupPercent = INITIAL_AKUP_PERCENT;
-				options.eachOtherOutcomes = INITIAL_OTHER_OUTCOMES;
+				options.eachOther = INITIAL_OTHER;
 				options.eachExchangeRate = INITIAL_EXCHANGE_RATE;
 
 				recalculate(months, options, sums);
@@ -263,7 +264,7 @@
 						<td><span x-text="months[i].taxLow"></span></td>
 						<td><span x-text="months[i].taxHigh"></span></td>
 						<td class="tax"><span x-text="months[i].totalTax"></span></td>
-						<td class="outcome"><input type="number" size="3" x-model="months[i].otherOutcomes" /></td>
+						<td class="outcome"><input type="number" size="3" x-model="months[i].other" /></td>
 						<td class="outcome"><span x-text="months[i].totalOutcome.toFixed(2)"></span></td>
 						<td class="net"><span x-text="months[i].net.toFixed(2)"></span></td>
 						<td><input type="number" size="3" x-model="months[i].exchangeRate" /></td>
@@ -299,7 +300,7 @@
 					<td><span x-text="format(getSum(months, 'taxLow'), 0)"></span></td>
 					<td><span x-text="format(getSum(months, 'taxHigh'), 0)"></span></td>
 					<td class="tax"><span x-text="format(getSum(months, 'totalTax'), 0)"></span></td>
-					<td class="outcome"><span x-text="format(getSum(months, 'otherOutcomes'), 0)"></span></td>
+					<td class="outcome"><span x-text="format(getSum(months, 'other'))"></span></td>
 					<td class="outcome"><span x-text="format(getSum(months, 'totalOutcome'))"></span></td>
 					<td class="net"><span x-text="format(getSum(months, 'net'))"></span></td>
 					<td></td>
@@ -332,12 +333,12 @@
 					<td></td>
 					<td></td>
 					<td class="tax"></td>
-					<td class="outcome"><span x-text="format(getAverage(months, 'otherOutcomes'))"></span></td>
+					<td class="outcome"><span x-text="format(getAverage(months, 'other'))"></span></td>
 					<td class="outcome"></td>
 					<td class="net"><span x-text="format(getAverage(months, 'net'))"></span></td>
 					<td></td>
 					<td class="usd"><span x-text="format(getAverage(months, 'netUsd'))"></span></td>
-					<td><span x-text="format(getSum(months, 'totalOutcome') / getSum(months, 'totalIncome') * 100) + '%'"></span></td>
+					<td><span x-text="format(getSum(months, 'totalOutcome') / (getSum(months, 'totalIncome') + getSum(months, 'other')) * 100) + '%'"></span></td>
 				</tr>
 
 				<tr><td colspan="99"></td></tr>
@@ -367,7 +368,7 @@
 					<td></td>
 					<td></td>
 					<td class="tax"></td>
-					<td class="outcome"><input type="number" size="3" x-model="options.eachOtherOutcomes" /></td>
+					<td class="outcome"><input type="number" size="3" x-model="options.eachOther" /></td>
 					<td class="outcome"></td>
 					<td class="net"></td>
 					<td><input type="number" size="3" x-model="options.eachExchangeRate" /></td>
