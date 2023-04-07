@@ -79,16 +79,16 @@
 
 				months.forEach((_, i) => {
 					if (isInit) {
-						months[i].gross = urlParams.get(`g-${i + 1}`) || months[i].gross;
-						months[i].totalWorkingDays = urlParams.get(`twd-${i + 1}`) || months[i].totalWorkingDays;
-						months[i].workedDays = urlParams.get(`wd-${i + 1}`) || months[i].workedDays;
-						months[i].paidVacationDays = urlParams.get(`pvd-${i + 1}`) || months[i].paidVacationDays;
-						months[i].benefits = urlParams.get(`b-${i + 1}`) || months[i].benefits;
-						months[i].taxDeductibleCosts = urlParams.get(`tdc-${i + 1}`) || months[i].taxDeductibleCosts;
-						months[i].taxRelief = urlParams.get(`tr-${i + 1}`) || months[i].taxRelief;
-						months[i].akupPercent = urlParams.get(`ap-${i + 1}`) || months[i].akupPercent;
-						months[i].other = urlParams.get(`o-${i + 1}`) || months[i].other;
-						months[i].exchangeRate = urlParams.get(`er-${i + 1}`) || months[i].exchangeRate;
+						months[i].gross = urlParams.get(`g${i + 1}`) || months[i].gross;
+						months[i].totalWorkingDays = urlParams.get(`twd${i + 1}`) || months[i].totalWorkingDays;
+						months[i].workedDays = urlParams.get(`wd${i + 1}`) || months[i].workedDays;
+						months[i].paidVacationDays = urlParams.get(`pvd${i + 1}`) || months[i].paidVacationDays;
+						months[i].benefits = urlParams.get(`b${i + 1}`) || months[i].benefits;
+						months[i].taxDeductibleCosts = urlParams.get(`tdc${i + 1}`) || months[i].taxDeductibleCosts;
+						months[i].taxRelief = urlParams.get(`tr${i + 1}`) || months[i].taxRelief;
+						months[i].akupPercent = urlParams.get(`ap${i + 1}`) || months[i].akupPercent;
+						months[i].other = urlParams.get(`o${i + 1}`) || months[i].other;
+						months[i].exchangeRate = urlParams.get(`er${i + 1}`) || months[i].exchangeRate;
 					}
 
 
