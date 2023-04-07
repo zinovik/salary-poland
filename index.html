@@ -71,14 +71,16 @@
 			const getAverage = (months, name) => round(months.reduce((sum, month) => sum + Number(month[name]), 0) / months.length);
 			const setAll = (months, name, value) => months.forEach((month) => month[name] = Number(value));
 
-			const recalculate = (months, options, isInit = false) => {
+			const recalculate = (months, options) => {
 				let pensionSum = 0;
 				let disabilitySum = 0;
 				let akupSum = 0;
 				let taxLowBasisSum = 0;
 
+				console.log(options.isLoaded);
+
 				months.forEach((_, i) => {
-					if (isInit) {
+					if (!options.isLoaded) {
 						months[i].gross = urlParams.get(`g${i + 1}`) || months[i].gross;
 						months[i].totalWorkingDays = urlParams.get(`twd${i + 1}`) || months[i].totalWorkingDays;
 						months[i].workedDays = urlParams.get(`wd${i + 1}`) || months[i].workedDays;
@@ -91,7 +93,6 @@
 						months[i].exchangeRate = urlParams.get(`er${i + 1}`) || months[i].exchangeRate;
 					}
 
-
 					months[i].working = round(months[i].gross * ( months[i].workedDays / months[i].totalWorkingDays )) || 0;
 					months[i].paidVacations = round(months[i].gross * ( months[i].paidVacationDays / months[i].totalWorkingDays )) || 0;
 					months[i].totalIncome = round(months[i].working + months[i].paidVacations + Number(months[i].benefits));
@@ -103,7 +104,7 @@
 					months[i].healthcareBasis = round(months[i].totalIncome - months[i].totalZusU);
 					months[i].healthcare = round(months[i].healthcareBasis * HEALTHCARE);
 
-					months[i].akup = Math.round(Math.min(0.5 * months[i].working * Number(months[i].akupPercent) * 0.01 * (1 - PENSION - DISABILITY - SICKNESS), options.sumLimitAkup - akupSum));
+					months[i].akup = round(Math.min(0.5 * months[i].working * Number(months[i].akupPercent) * 0.01 * (1 - PENSION - DISABILITY - SICKNESS), options.sumLimitAkup - akupSum));
 
 					const taxBasis = months[i].totalIncome - months[i].totalZusU - Number(months[i].taxDeductibleCosts) - months[i].akup;
 					months[i].taxLowBasis = Math.round(Math.min(taxBasis, options.sumLimitTaxLow - taxLowBasisSum));
@@ -115,13 +116,15 @@
 					months[i].totalOutcome = round(months[i].totalZusU + months[i].healthcare + months[i].totalTax);
 					months[i].net = round(months[i].totalIncome - months[i].totalOutcome - Number(months[i].benefits) - Number(months[i].other));
 					months[i].netUsd = round(months[i].net / Number(months[i].exchangeRate)) || 0;
-					months[i].outcomePercentage = round(months[i].totalOutcome / (months[i].totalIncome + Number(months[i].other)) * 100) || 0;
+					months[i].outcomePercentage = round(months[i].totalOutcome / months[i].totalIncome * 100) || 0;
 
 					pensionSum = pensionSum + months[i].pension;
 					disabilitySum = disabilitySum + months[i].disability;
 					akupSum = akupSum + months[i].akup;
 					taxLowBasisSum = taxLowBasisSum + months[i].taxLowBasis;
 				});
+
+				options.isLoaded = true;
 			};
 
 			const clearMonth = (months, i) => {
@@ -163,19 +166,6 @@
 				sums: {},
 			}"
 			x-init="
-				$watch('options.eachGross', (value) => setAll(months, 'gross', value));
-				$watch('options.eachTotalWorkingDays', (value) => setAll(months, 'totalWorkingDays', value));
-				$watch('options.eachWorkedDays', (value) => setAll(months, 'workedDays', value));
-				$watch('options.eachPaidVacationDays', (value) => setAll(months, 'paidVacationDays', value));
-				$watch('options.eachBenefits', (value) => setAll(months, 'benefits', value));
-				$watch('options.eachTaxDeductibleCosts', (value) => setAll(months, 'taxDeductibleCosts', value));
-				$watch('options.eachTaxRelief', (value) => setAll(months, 'taxRelief', value));
-				$watch('options.eachAkupPercent', (value) => setAll(months, 'akupPercent', value));
-				$watch('options.eachOther', (value) => setAll(months, 'other', value));
-				$watch('options.eachExchangeRate', (value) => setAll(months, 'exchangeRate', value));
-
-				const urlParams = new URLSearchParams(window.location.search);
-
 				options.eachGross = INITIAL_GROSS;
 				options.eachTotalWorkingDays = INITIAL_TOTAL_WORKING_DAYS;
 				options.eachWorkedDays = INITIAL_WORKED_DAYS;
@@ -187,12 +177,34 @@
 				options.eachOther = INITIAL_OTHER;
 				options.eachExchangeRate = INITIAL_EXCHANGE_RATE;
 
-				recalculate(months, options, sums, true);
+				setAll(months, 'gross', options.eachGross);
+				setAll(months, 'totalWorkingDays', options.eachTotalWorkingDays);
+				setAll(months, 'workedDays', options.eachWorkedDays);
+				setAll(months, 'paidVacationDays', options.eachPaidVacationDays);
+				setAll(months, 'benefits', options.eachBenefits);
+				setAll(months, 'taxDeductibleCosts', options.eachTaxDeductibleCosts);
+				setAll(months, 'taxRelief', options.eachTaxRelief);
+				setAll(months, 'akupPercent', options.eachAkupPercent);
+				setAll(months, 'other', options.eachOther);
+				setAll(months, 'exchangeRate', options.eachExchangeRate);
+
+				recalculate(months, options, sums);
 				$watch('months', () => recalculate(months, options, sums));
 				$watch('options.sumLimitPension', () => recalculate(months, options, sums));
 				$watch('options.sumLimitDisability', () => recalculate(months, options, sums));
 				$watch('options.sumLimitAkup', () => recalculate(months, options, sums));
 				$watch('options.sumLimitTaxLow', () => recalculate(months, options, sums));
+
+				$watch('options.eachGross', (value) => setAll(months, 'gross', value));
+				$watch('options.eachTotalWorkingDays', (value) => setAll(months, 'totalWorkingDays', value));
+				$watch('options.eachWorkedDays', (value) => setAll(months, 'workedDays', value));
+				$watch('options.eachPaidVacationDays', (value) => setAll(months, 'paidVacationDays', value));
+				$watch('options.eachBenefits', (value) => setAll(months, 'benefits', value));
+				$watch('options.eachTaxDeductibleCosts', (value) => setAll(months, 'taxDeductibleCosts', value));
+				$watch('options.eachTaxRelief', (value) => setAll(months, 'taxRelief', value));
+				$watch('options.eachAkupPercent', (value) => setAll(months, 'akupPercent', value));
+				$watch('options.eachOther', (value) => setAll(months, 'other', value));
+				$watch('options.eachExchangeRate', (value) => setAll(months, 'exchangeRate', value));
 			"
 		>
 			<table>
@@ -202,8 +214,7 @@
 					<th colspan="3">Days</th>
 					<th colspan="4" class="income">INCOME</th>
 					<th colspan="16" class="outcome">OUTCOME</th>
-					<th rowspan="3" class="net">Other</th>
-					<th rowspan="3" class="net">NET</th>
+					<th colspan="2" class="net">NET</th>
 					<th rowspan="3">USD to PLN</th>
 					<th rowspan="3">NET, USD</th>
 					<th rowspan="3">Outcomes Percentage</th>
@@ -219,6 +230,8 @@
 					<th colspan="2" class="zus">Healthcare</th>
 					<th colspan="9" class="tax">TAX</th>
 					<th rowspan="2" class="outcome">TOTAL OUTCOME</th>
+					<th rowspan="2" class="net">Other</th>
+					<th rowspan="2" class="net">Card Payment</th>
 				</tr>
 				<tr>
 					<th alt="test">Working</th>
@@ -340,7 +353,7 @@
 					<td class="net"><span x-text="format(getAverage(months, 'net'))"></span></td>
 					<td></td>
 					<td class="usd"><span x-text="format(getAverage(months, 'netUsd'))"></span></td>
-					<td><span x-text="format(getSum(months, 'totalOutcome') / (getSum(months, 'totalIncome') + getSum(months, 'other')) * 100) + '%'"></span></td>
+					<td><span x-text="format(getSum(months, 'totalOutcome') / getSum(months, 'totalIncome') * 100) + '%'"></span></td>
 				</tr>
 
 				<tr><td colspan="99"></td></tr>
