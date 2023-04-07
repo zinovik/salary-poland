@@ -202,7 +202,7 @@
 					<th colspan="3">Days</th>
 					<th colspan="4" class="income">INCOME</th>
 					<th colspan="16" class="outcome">OUTCOME</th>
-					<th rowspan="3" class="outcome">Other</th>
+					<th rowspan="3" class="net">Other</th>
 					<th rowspan="3" class="net">NET</th>
 					<th rowspan="3">USD to PLN</th>
 					<th rowspan="3">NET, USD</th>
@@ -267,7 +267,7 @@
 						<td><span x-text="months[i].taxHigh"></span></td>
 						<td class="tax"><span x-text="months[i].totalTax"></span></td>
 						<td class="outcome"><span x-text="months[i].totalOutcome.toFixed(2)"></span></td>
-						<td class="outcome"><input type="number" size="3" x-model="months[i].other" /></td>
+						<td class="net"><input type="number" size="3" x-model="months[i].other" /></td>
 						<td class="net"><span x-text="months[i].net.toFixed(2)"></span></td>
 						<td><input type="number" size="3" x-model="months[i].exchangeRate" /></td>
 						<td class="usd"><span x-text="months[i].netUsd.toFixed(2)"></span></td>
@@ -303,7 +303,7 @@
 					<td><span x-text="format(getSum(months, 'taxHigh'), 0)"></span></td>
 					<td class="tax"><span x-text="format(getSum(months, 'totalTax'), 0)"></span></td>
 					<td class="outcome"><span x-text="format(getSum(months, 'totalOutcome'))"></span></td>
-					<td class="outcome"><span x-text="format(getSum(months, 'other'))"></span></td>
+					<td class="net"><span x-text="format(getSum(months, 'other'))"></span></td>
 					<td class="net"><span x-text="format(getSum(months, 'net'))"></span></td>
 					<td></td>
 					<td class="usd"><span x-text="format(getSum(months, 'netUsd'))"></span></td>
@@ -336,7 +336,7 @@
 					<td></td>
 					<td class="tax"></td>
 					<td class="outcome"></td>
-					<td class="outcome"><span x-text="format(getAverage(months, 'other'))"></span></td>
+					<td class="net"><span x-text="format(getAverage(months, 'other'))"></span></td>
 					<td class="net"><span x-text="format(getAverage(months, 'net'))"></span></td>
 					<td></td>
 					<td class="usd"><span x-text="format(getAverage(months, 'netUsd'))"></span></td>
@@ -371,7 +371,7 @@
 					<td></td>
 					<td class="tax"></td>
 					<td class="outcome"></td>
-					<td class="outcome"><input type="number" size="3" x-model="options.eachOther" /></td>
+					<td class="net"><input type="number" size="3" x-model="options.eachOther" /></td>
 					<td class="net"></td>
 					<td><input type="number" size="3" x-model="options.eachExchangeRate" /></td>
 					<td class="usd"></td>
@@ -404,7 +404,7 @@
 					<td></td>
 					<td class="tax"></td>
 					<td class="outcome"></td>
-					<td class="outcome"></td>
+					<td class="net"></td>
 					<td class="net"></td>
 					<td></td>
 					<td class="usd"></td>
