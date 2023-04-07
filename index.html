@@ -71,24 +71,26 @@
 			const getAverage = (months, name) => round(months.reduce((sum, month) => sum + Number(month[name]), 0) / months.length);
 			const setAll = (months, name, value) => months.forEach((month) => month[name] = Number(value));
 
-			const recalculate = (months, options) => {
+			const recalculate = (months, options, isInit = false) => {
 				let pensionSum = 0;
 				let disabilitySum = 0;
 				let akupSum = 0;
 				let taxLowBasisSum = 0;
 
 				months.forEach((_, i) => {
-					// TODO: Init only
-					months[i].gross = urlParams.get(`g-${i + 1}`) || months[i].gross;
-					months[i].totalWorkingDays = urlParams.get(`twd-${i + 1}`) || months[i].totalWorkingDays;
-					months[i].workedDays = urlParams.get(`wd-${i + 1}`) || months[i].workedDays;
-					months[i].paidVacationDays = urlParams.get(`pvd-${i + 1}`) || months[i].paidVacationDays;
-					months[i].benefits = urlParams.get(`b-${i + 1}`) || months[i].benefits;
-					months[i].taxDeductibleCosts = urlParams.get(`tdc-${i + 1}`) || months[i].taxDeductibleCosts;
-					months[i].taxRelief = urlParams.get(`tr-${i + 1}`) || months[i].taxRelief;
-					months[i].akupPercent = urlParams.get(`ap-${i + 1}`) || months[i].akupPercent;
-					months[i].exchangeRate = urlParams.get(`er-${i + 1}`) || months[i].exchangeRate;
-					//
+					if (isInit) {
+						months[i].gross = urlParams.get(`g-${i + 1}`) || months[i].gross;
+						months[i].totalWorkingDays = urlParams.get(`twd-${i + 1}`) || months[i].totalWorkingDays;
+						months[i].workedDays = urlParams.get(`wd-${i + 1}`) || months[i].workedDays;
+						months[i].paidVacationDays = urlParams.get(`pvd-${i + 1}`) || months[i].paidVacationDays;
+						months[i].benefits = urlParams.get(`b-${i + 1}`) || months[i].benefits;
+						months[i].taxDeductibleCosts = urlParams.get(`tdc-${i + 1}`) || months[i].taxDeductibleCosts;
+						months[i].taxRelief = urlParams.get(`tr-${i + 1}`) || months[i].taxRelief;
+						months[i].akupPercent = urlParams.get(`ap-${i + 1}`) || months[i].akupPercent;
+						months[i].other = urlParams.get(`o-${i + 1}`) || months[i].other;
+						months[i].exchangeRate = urlParams.get(`er-${i + 1}`) || months[i].exchangeRate;
+					}
+
 
 					months[i].working = round(months[i].gross * ( months[i].workedDays / months[i].totalWorkingDays )) || 0;
 					months[i].paidVacations = round(months[i].gross * ( months[i].paidVacationDays / months[i].totalWorkingDays )) || 0;
@@ -185,7 +187,7 @@
 				options.eachOther = INITIAL_OTHER;
 				options.eachExchangeRate = INITIAL_EXCHANGE_RATE;
 
-				recalculate(months, options, sums);
+				recalculate(months, options, sums, true);
 				$watch('months', () => recalculate(months, options, sums));
 				$watch('options.sumLimitPension', () => recalculate(months, options, sums));
 				$watch('options.sumLimitDisability', () => recalculate(months, options, sums));
