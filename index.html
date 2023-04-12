@@ -52,6 +52,7 @@
 			const INITIAL_WORKED_DAYS = urlParams.get('wd') || 20;
 			const INITIAL_PAID_VACATION_DAYS = urlParams.get('pvd') || 0;
 			const INITIAL_BENEFITS = urlParams.get('b') || 156.80;
+			const INITIAL_OTHER_TAX_ONLY_INCOME = urlParams.get('oti') || 0;
 			const INITIAL_TAX_DEDUCTIBLE_COSTS = urlParams.get('tdc') || 250;
 			const INITIAL_TAX_RELIEF = urlParams.get('tr') || 300;
 			const INITIAL_AKUP_PERCENT = urlParams.get('ap') || 0; // 80;
@@ -86,6 +87,7 @@
 						months[i].workedDays = urlParams.get(`wd${i + 1}`) || months[i].workedDays;
 						months[i].paidVacationDays = urlParams.get(`pvd${i + 1}`) || months[i].paidVacationDays;
 						months[i].benefits = urlParams.get(`b${i + 1}`) || months[i].benefits;
+						months[i].otherTaxOnlyIncome = urlParams.get(`oti${i + 1}`) || months[i].otherTaxOnlyIncome;
 						months[i].taxDeductibleCosts = urlParams.get(`tdc${i + 1}`) || months[i].taxDeductibleCosts;
 						months[i].taxRelief = urlParams.get(`tr${i + 1}`) || months[i].taxRelief;
 						months[i].akupPercent = urlParams.get(`ap${i + 1}`) || months[i].akupPercent;
@@ -106,9 +108,9 @@
 
 					months[i].akup = round(Math.min(0.5 * months[i].working * Number(months[i].akupPercent) * 0.01 * (1 - PENSION - DISABILITY - SICKNESS), options.sumLimitAkup - akupSum));
 
-					const taxBasis = months[i].totalIncome - months[i].totalZusU - Number(months[i].taxDeductibleCosts) - months[i].akup;
-					months[i].taxLowBasis = Math.round(Math.min(taxBasis, options.sumLimitTaxLow - taxLowBasisSum));
-					months[i].taxHighBasis = Math.round(Math.max(0, taxBasis - months[i].taxLowBasis));
+					const taxBasis = months[i].totalIncome + Number(months[i].otherTaxOnlyIncome) - months[i].totalZusU - Number(months[i].taxDeductibleCosts) - months[i].akup;
+					months[i].taxLowBasis = round(Math.min(taxBasis, options.sumLimitTaxLow - taxLowBasisSum));
+					months[i].taxHighBasis = round(Math.max(0, taxBasis - months[i].taxLowBasis));
 
 					months[i].taxLow = Math.round(months[i].taxLowBasis * TAX_LOW);
 					months[i].taxHigh = Math.round(months[i].taxHighBasis * TAX_HIGH);
@@ -133,6 +135,7 @@
 				months[i].workedDays = 0;
 				months[i].paidVacations = 0;
 				months[i].benefits = 0;
+				months[i].otherTaxOnlyIncome = 0;
 				months[i].taxDeductibleCosts = 0;
 				months[i].taxRelief = 0;
 				months[i].akupPercent = 0;
@@ -160,7 +163,7 @@
 				options: {
 					sumLimitPension: 20305.68,
 					sumLimitDisability: 3120.75,
-					sumLimitAkup: 80000,
+					sumLimitAkup: 120000,
 					sumLimitTaxLow: 120000,
 				},
 				sums: {},
@@ -171,6 +174,7 @@
 				options.eachWorkedDays = INITIAL_WORKED_DAYS;
 				options.eachPaidVacationDays = INITIAL_PAID_VACATION_DAYS;
 				options.eachBenefits = INITIAL_BENEFITS;
+				options.eachOtherTaxOnlyIncome = INITIAL_OTHER_TAX_ONLY_INCOME;
 				options.eachTaxDeductibleCosts = INITIAL_TAX_DEDUCTIBLE_COSTS;
 				options.eachTaxRelief = INITIAL_TAX_RELIEF;
 				options.eachAkupPercent = INITIAL_AKUP_PERCENT;
@@ -182,6 +186,7 @@
 				setAll(months, 'workedDays', options.eachWorkedDays);
 				setAll(months, 'paidVacationDays', options.eachPaidVacationDays);
 				setAll(months, 'benefits', options.eachBenefits);
+				setAll(months, 'otherTaxOnlyIncome', options.eachOtherTaxOnlyIncome);
 				setAll(months, 'taxDeductibleCosts', options.eachTaxDeductibleCosts);
 				setAll(months, 'taxRelief', options.eachTaxRelief);
 				setAll(months, 'akupPercent', options.eachAkupPercent);
@@ -200,6 +205,7 @@
 				$watch('options.eachWorkedDays', (value) => setAll(months, 'workedDays', value));
 				$watch('options.eachPaidVacationDays', (value) => setAll(months, 'paidVacationDays', value));
 				$watch('options.eachBenefits', (value) => setAll(months, 'benefits', value));
+				$watch('options.eachOtherTaxOnlyIncome', (value) => setAll(months, 'otherTaxOnlyIncome', value));
 				$watch('options.eachTaxDeductibleCosts', (value) => setAll(months, 'taxDeductibleCosts', value));
 				$watch('options.eachTaxRelief', (value) => setAll(months, 'taxRelief', value));
 				$watch('options.eachAkupPercent', (value) => setAll(months, 'akupPercent', value));
@@ -213,10 +219,10 @@
 					<th rowspan="3">GROSS</th>
 					<th colspan="3">Days</th>
 					<th colspan="4" class="income">INCOME</th>
-					<th colspan="16" class="outcome">OUTCOME</th>
+					<th colspan="17" class="outcome">OUTCOME</th>
 					<th colspan="2" class="net">NET</th>
 					<th rowspan="3">USD to PLN</th>
-					<th rowspan="3">NET, USD</th>
+					<th rowspan="3">Card Payment, USD</th>
 					<th rowspan="3">Outcomes Percentage</th>
 				</tr>
 				<tr>
@@ -228,7 +234,7 @@
 					<th rowspan="2" class="income">TOTAL INCOME</th>
 					<th colspan="4" class="zus">Social Security ZUS (ubezpieczenie)</th>
 					<th colspan="2" class="zus">Healthcare</th>
-					<th colspan="9" class="tax">TAX</th>
+					<th colspan="10" class="tax">TAX</th>
 					<th rowspan="2" class="outcome">TOTAL OUTCOME</th>
 					<th rowspan="2" class="net">Other</th>
 					<th rowspan="2" class="net">Card Payment</th>
@@ -242,6 +248,7 @@
 					<th class="zus">TOTAL ZUS U</th>
 					<th>Basis for Healthcare</th>
 					<th class="zus" x-text="'Healthcare ' + HEALTHCARE * 100 + '%'"></th>
+					<th>Other tax only income</th>
 					<th>Tax Deductible Costs</th>
 					<th>Tax Relief</th>
 					<th>AKUP %</th>
@@ -256,7 +263,7 @@
 				<template x-for="(month, i) in months">
 					<tr>
 						<td><span x-text="month.name"></span> <button type="button" @click="clearMonth(months, i)">X</button></td>
-						<td><input type="number" size="5" x-model="months[i].gross" /></td>
+						<td><input type="number" size="4" x-model="months[i].gross" /></td>
 						<td><input type="number" size="2" x-model="months[i].totalWorkingDays" /></td>
 						<td><input type="number" size="2" x-model="months[i].workedDays" /></td>
 						<td><input type="number" size="2" x-model="months[i].paidVacationDays" /></td>
@@ -270,12 +277,13 @@
 						<td class="zus"><span x-text="months[i].totalZusU.toFixed(2)"></span></td>
 						<td><span x-text="months[i].healthcareBasis.toFixed(2)"></span></td>
 						<td class="zus"><span x-text="months[i].healthcare.toFixed(2)"></span></td>
+						<td><input type="number" size="3" x-model="months[i].otherTaxOnlyIncome" /></td>
 						<td><input type="number" size="3" x-model="months[i].taxDeductibleCosts" /></td>
-						<td><input type="number" size="3" x-model="months[i].taxRelief" /></td>
-						<td><input type="number" size="2" x-model="months[i].akupPercent" /></td>
+						<td><input type="number" size="2" x-model="months[i].taxRelief" /></td>
+						<td><input type="number" size="1" x-model="months[i].akupPercent" /></td>
 						<td><span x-text="months[i].akup.toFixed(2)"></span></td>
-						<td><span x-text="months[i].taxLowBasis"></span></td>
-						<td><span x-text="months[i].taxHighBasis"></span></td>
+						<td><span x-text="months[i].taxLowBasis.toFixed(2)"></span></td>
+						<td><span x-text="months[i].taxHighBasis.toFixed(2)"></span></td>
 						<td><span x-text="months[i].taxLow"></span></td>
 						<td><span x-text="months[i].taxHigh"></span></td>
 						<td class="tax"><span x-text="months[i].totalTax"></span></td>
@@ -306,12 +314,13 @@
 					<td class="zus"><span x-text="format(getSum(months, 'totalZusU'))"></span></td>
 					<td><span x-text="format(getSum(months, 'healthcareBasis'))"></span></td>
 					<td class="zus"><span x-text="format(getSum(months, 'healthcare'))"></span></td>
+					<td><span x-text="format(getSum(months, 'otherTaxOnlyIncome'))"></span></td>
 					<td><span x-text="format(getSum(months, 'taxDeductibleCosts'), 0)"></span></td>
 					<td><span x-text="format(getSum(months, 'taxRelief'), 0)"></span></td>
 					<td></td>
 					<td><span x-text="format(getSum(months, 'akup'))"></span></td>
-					<td><span x-text="format(getSum(months, 'taxLowBasis'), 0)"></span></td>
-					<td><span x-text="format(getSum(months, 'taxHighBasis'), 0)"></span></td>
+					<td><span x-text="format(getSum(months, 'taxLowBasis'))"></span></td>
+					<td><span x-text="format(getSum(months, 'taxHighBasis'))"></span></td>
 					<td><span x-text="format(getSum(months, 'taxLow'), 0)"></span></td>
 					<td><span x-text="format(getSum(months, 'taxHigh'), 0)"></span></td>
 					<td class="tax"><span x-text="format(getSum(months, 'totalTax'), 0)"></span></td>
@@ -347,6 +356,7 @@
 					<td></td>
 					<td></td>
 					<td></td>
+					<td></td>
 					<td class="tax"></td>
 					<td class="outcome"></td>
 					<td class="net"><span x-text="format(getAverage(months, 'other'))"></span></td>
@@ -360,7 +370,7 @@
 
 				<tr>
 					<td>SET EACH</td>
-					<td><input type="number" size="5" x-model="options.eachGross" /></td>
+					<td><input type="number" size="4" x-model="options.eachGross" /></td>
 					<td><input type="number" size="2" x-model="options.eachTotalWorkingDays" /></td>
 					<td><input type="number" size="2" x-model="options.eachWorkedDays" /></td>
 					<td><input type="number" size="2" x-model="options.eachPaidVacationDays" /></td>
@@ -374,9 +384,10 @@
 					<td class="zus"></td>
 					<td></td>
 					<td class="zus"></td>
+					<td><input type="number" size="3" x-model="options.eachOtherTaxOnlyIncome" /></td>
 					<td><input type="number" size="3" x-model="options.eachTaxDeductibleCosts" /></td>
-					<td><input type="number" size="3" x-model="options.eachTaxRelief" /></td>
-					<td><input type="number" size="2" x-model="options.eachAkupPercent" /></td>
+					<td><input type="number" size="2" x-model="options.eachTaxRelief" /></td>
+					<td><input type="number" size="1" x-model="options.eachAkupPercent" /></td>
 					<td></td>
 					<td></td>
 					<td></td>
@@ -401,12 +412,13 @@
 					<td></td>
 					<td></td>
 					<td class="income"></td>
-					<td><input type="number" size="7" x-model="options.sumLimitPension" /></td>
-					<td><input type="number" size="7" x-model="options.sumLimitDisability" /></td>
+					<td><input type="number" size="6" x-model="options.sumLimitPension" /></td>
+					<td><input type="number" size="5" x-model="options.sumLimitDisability" /></td>
 					<td></td>
 					<td class="zus"></td>
 					<td></td>
 					<td class="zus"></td>
+					<td></td>
 					<td></td>
 					<td></td>
 					<td></td>
