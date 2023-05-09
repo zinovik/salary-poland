@@ -60,6 +60,9 @@
 			.size-6 {
 				width: 60px;
 			}
+			.size-6 {
+				width: 70px;
+			}
 		</style>
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 		<script>
@@ -73,9 +76,9 @@
 			const INITIAL_OTHER_TAX_ONLY_INCOME = urlParams.get('oti') || 0;
 			const INITIAL_TAX_DEDUCTIBLE_COSTS = urlParams.get('tdc') || 250;
 			const INITIAL_TAX_RELIEF = urlParams.get('tr') || 300;
-			const INITIAL_AKUP_PERCENT = urlParams.get('ap') || 0; // 80;
+			const INITIAL_AKUP_PERCENT = urlParams.get('ap') || 80;
 			const INITIAL_OTHER = urlParams.get('o') || 3.32;
-			const INITIAL_EXCHANGE_RATE = urlParams.get('er') || 4.29;
+			const INITIAL_EXCHANGE_RATE = urlParams.get('er') || 4.16;
 
 			const PENSION = urlParams.get('p') * 0.01 || 0.0976;
 			const DISABILITY = urlParams.get('d') * 0.01 || 0.015;
@@ -430,8 +433,8 @@
 					<td></td>
 					<td></td>
 					<td class="income"></td>
-					<td><input type="number" class="size-6" x-model="options.sumLimitPension" /></td>
-					<td><input type="number" class="size-5" x-model="options.sumLimitDisability" /></td>
+					<td><input type="number" class="size-7" x-model="options.sumLimitPension" /></td>
+					<td><input type="number" class="size-6" x-model="options.sumLimitDisability" /></td>
 					<td></td>
 					<td class="zus"></td>
 					<td></td>
