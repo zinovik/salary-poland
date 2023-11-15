@@ -78,7 +78,7 @@
 			const INITIAL_TAX_RELIEF = urlParams.get('tr') || 300;
 			const INITIAL_AKUP_PERCENT = urlParams.get('ap') || 80;
 			const INITIAL_OTHER = urlParams.get('o') || 3.32;
-			const INITIAL_EXCHANGE_RATE = urlParams.get('er') || 4.16;
+			const INITIAL_EXCHANGE_RATE = urlParams.get('er') || 4.15;
 
 			const PENSION = urlParams.get('p') * 0.01 || 0.0976;
 			const DISABILITY = urlParams.get('d') * 0.01 || 0.015;
@@ -127,7 +127,7 @@
 					months[i].healthcareBasis = round(months[i].totalIncome - months[i].totalZusU);
 					months[i].healthcare = round(months[i].healthcareBasis * HEALTHCARE);
 
-					months[i].akup = round(Math.min(0.5 * months[i].working * Number(months[i].akupPercent) * 0.01 * (1 - PENSION - DISABILITY - SICKNESS), options.sumLimitAkup - akupSum));
+					months[i].akup = round(Math.min(0.5 * months[i].working * Number(months[i].akupPercent) * 0.01 * (1 - (months[i].totalZusU / months[i].totalIncome)), options.sumLimitAkup - akupSum));
 
 					const taxBasis = months[i].totalIncome + Number(months[i].otherTaxOnlyIncome) - months[i].totalZusU - Number(months[i].taxDeductibleCosts) - months[i].akup;
 					months[i].taxLowBasis = round(Math.min(taxBasis, options.sumLimitTaxLow - taxLowBasisSum));
@@ -182,8 +182,8 @@
 					{ name: 'Dec' },
 				],
 				options: {
-					sumLimitPension: 20305.68,
-					sumLimitDisability: 3120.75,
+					sumLimitPension: 20305.66,
+					sumLimitDisability: 3120.74,
 					sumLimitAkup: 120000,
 					sumLimitTaxLow: 120000,
 				},
